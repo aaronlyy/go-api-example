@@ -1,13 +1,29 @@
 package main
 
 import (
-	"net/http"
+	"fmt"
 	"log"
+	"net/http"
+	"os"
+
 	"github.com/aaronlyy/go-api-example/internal/controller"
 	"github.com/aaronlyy/go-api-example/internal/middleware"
+	"github.com/joho/godotenv"
 )
 
+func getEnv(key string) string {
+	value, ok := os.LookupEnv(key)
+	if !ok || value == "" {
+		return "n/a"
+	}
+	return value
+}
+
 func main() {
+
+	// load env vars
+	_ = godotenv.Load()
+	var PORT string = getEnv("PORT")
 
 	muxMain := http.NewServeMux() // create main router
 	muxMisc := http.NewServeMux() // router for health, status
@@ -34,12 +50,17 @@ func main() {
 	muxUser.HandleFunc("POST /register", user.Register)
 	muxUser.HandleFunc("POST /delete", user.Delete)
 
-	
-	var muxMainChained = middleware.Chain(muxMain, middleware.Log)
+	// wrap main mux in middleware
+	var muxMainChained = middleware.Chain(
+		muxMain,
+		middleware.Recover, // recover server errors
+		middleware.Log,     // log requests
+		// authenticate
+	)
 
 	// start server
-	var err error = http.ListenAndServe("localhost:3000", muxMainChained)
-	if err != nil {
-		log.Fatal(http.ListenAndServe(":3000", muxMainChained))
-	}
+	fmt.Printf("Server listening on port %s", PORT)
+	var addr string = fmt.Sprintf("localhost:%s", PORT)
+	log.Fatal(http.ListenAndServe(addr, muxMainChained))
+	
 }
