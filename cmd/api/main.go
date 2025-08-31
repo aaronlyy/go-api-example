@@ -53,14 +53,13 @@ func main() {
 	// wrap main mux in middleware
 	var muxMainChained = middleware.Chain(
 		muxMain,
-		middleware.Recover, // recover server errors
-		middleware.Log,     // log requests
-		// authenticate
+		middleware.Recover,
+		middleware.Log,
 	)
 
 	// start server
-	fmt.Printf("Server listening on port %s", PORT)
 	var addr string = fmt.Sprintf("localhost:%s", PORT)
+	fmt.Printf("Server listening on\u001B[1;32m http://%s \u001B[0m\n", addr)
 	log.Fatal(http.ListenAndServe(addr, muxMainChained))
-	
+
 }
