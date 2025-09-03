@@ -24,6 +24,7 @@ func main() {
 	// load env vars
 	_ = godotenv.Load()
 	var PORT string = getEnv("PORT")
+	var ENV string = getEnv("ENV")
 
 	muxMain := http.NewServeMux() // create main router
 	muxMisc := http.NewServeMux() // router for health, status
@@ -58,7 +59,13 @@ func main() {
 	)
 
 	// start server
-	var addr string = fmt.Sprintf("localhost:%s", PORT)
+	var addr string
+
+	if (ENV == "DEV") {
+		addr =  fmt.Sprintf("localhost:%s", PORT)
+	} else {
+		addr = fmt.Sprintf(":%s", PORT)
+	}
 	fmt.Printf("Server listening on\u001B[1;32m http://%s \u001B[0m\n", addr)
 	log.Fatal(http.ListenAndServe(addr, muxMainChained))
 
