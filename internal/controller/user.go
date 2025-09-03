@@ -30,7 +30,7 @@ func (c *User) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("New user created: %s", rb.Username)
+	fmt.Printf("New user created: %s\n", rb.Username)
 
 	response.NewResponse(201, "New user created", nil).Send(w)
 }

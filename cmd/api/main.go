@@ -4,27 +4,20 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
+
+	"github.com/joho/godotenv"
 
 	"github.com/aaronlyy/go-api-example/internal/controller"
 	"github.com/aaronlyy/go-api-example/internal/middleware"
-	"github.com/joho/godotenv"
+	"github.com/aaronlyy/go-api-example/internal/util"
 )
-
-func getEnv(key string) string {
-	value, ok := os.LookupEnv(key)
-	if !ok || value == "" {
-		return "n/a"
-	}
-	return value
-}
 
 func main() {
 
 	// load env vars
 	_ = godotenv.Load()
-	var PORT string = getEnv("PORT")
-	var ENV string = getEnv("ENV")
+	var PORT string = util.GetEnv("PORT")
+	var ENV string = util.GetEnv("ENV")
 
 	muxMain := http.NewServeMux() // create main router
 	muxMisc := http.NewServeMux() // router for health, status
@@ -45,7 +38,8 @@ func main() {
 	muxMisc.HandleFunc("GET /health", misc.Health)
 
 	// register auth handlers
-	muxAuth.HandleFunc("POST /authenticate", auth.Authenticate)
+	muxAuth.HandleFunc("POST /login", auth.Login)
+	muxAuth.HandleFunc("POST /logout", auth.Logout)
 
 	// register user handlers
 	muxUser.HandleFunc("POST /register", user.Register)
