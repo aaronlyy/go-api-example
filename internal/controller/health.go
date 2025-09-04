@@ -6,10 +6,10 @@ import (
 )
 
 // create a new controller struct
-type Misc struct {}
+type Health struct {}
 
 // attach method to controller, needs ResponseWriter and Request
-func (c *Misc) Health(w http.ResponseWriter, r *http.Request) {
+func (c *Health) Health(w http.ResponseWriter, r *http.Request) {
 	// prepare response object
 	var res = response.NewResponse(200, "Service is healty", nil)
 	res.Send(w)

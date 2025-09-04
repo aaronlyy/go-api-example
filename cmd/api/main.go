@@ -19,38 +19,33 @@ func main() {
 	var PORT string = util.GetEnv("PORT")
 	var ENV string = util.GetEnv("ENV")
 
+	// create all needed subrouters
 	muxMain := http.NewServeMux() // create main router
-	muxMisc := http.NewServeMux() // router for health, status
 	muxAuth := http.NewServeMux() // router for authentication and authorization stuff
 	muxUser := http.NewServeMux() // user creation and deletion
 
-	// add subroutes to main router
-	muxMain.Handle("/misc/", http.StripPrefix("/misc", muxMisc))
-	muxMain.Handle("/auth/", http.StripPrefix("/auth", muxAuth))
-	muxMain.Handle("/user/", http.StripPrefix("/user", muxUser))
-
 	// create controller structs
-	var misc = controller.Misc{}
 	var auth = controller.Auth{}
 	var user = controller.User{}
+	var health = controller.Health{}
 
-	// register misc handlers
-	muxMisc.HandleFunc("GET /health", misc.Health)
+	// main router handlers, no authentication required
+	muxMain.HandleFunc("GET /health", health.Health)
 
-	// register auth handlers
+	// auth handlers, no authentication required
 	muxAuth.HandleFunc("POST /login", auth.Login)
 	muxAuth.HandleFunc("POST /logout", auth.Logout)
 
-	// register user handlers
+	// user handlers
 	muxUser.HandleFunc("POST /register", user.Register)
-	muxUser.HandleFunc("POST /delete", user.Delete)
+	muxUser.Handle("PUT /deactivate/{uid}", middleware.Chain(http.HandlerFunc(user.Deactivate), middleware.Authenticate, middleware.Authorize)) // TODO: create ChainHandler & ChainFunc
 
-	// wrap main mux in middleware
-	var muxMainChained = middleware.Chain(
-		muxMain,
-		middleware.Recover,
-		middleware.Log,
-	)
+	// add subrouters to main router
+	muxMain.Handle("/auth/", http.StripPrefix("/auth", muxAuth))
+	muxMain.Handle("/user/", http.StripPrefix("/user", muxUser))
+
+	// chain main router
+	muxMainChained := middleware.Chain(muxMain,middleware.Recover, middleware.Log, )
 
 	// start server
 	var addr string

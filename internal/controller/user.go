@@ -36,7 +36,7 @@ func (c *User) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 // attach method to controller, needs ResponseWriter and Request
-func (c *User) Delete(w http.ResponseWriter, r *http.Request) {
+func (c *User) Deactivate(w http.ResponseWriter, r *http.Request) {
 	// prepare response object
-	response.NewResponse(200, "User deleted", nil).Send(w)
+	response.NewResponse(200, "User deactivated", nil).Send(w)
 }
