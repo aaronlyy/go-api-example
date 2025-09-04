@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-
 	"github.com/aaronlyy/go-api-example/internal/auth"
 	"github.com/aaronlyy/go-api-example/internal/response"
 )

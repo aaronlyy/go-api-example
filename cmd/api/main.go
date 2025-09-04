@@ -38,7 +38,14 @@ func main() {
 
 	// user handlers
 	muxUser.HandleFunc("POST /register", user.Register)
-	muxUser.Handle("PUT /deactivate/{uid}", middleware.Chain(http.HandlerFunc(user.Deactivate), middleware.Authenticate, middleware.Authorize)) // TODO: create ChainHandler & ChainFunc
+	muxUser.Handle(
+		"PUT /deactivate/{uid}",
+		middleware.Chain(
+			http.HandlerFunc(user.Deactivate),
+			middleware.Authenticate,
+			middleware.Authorize("admin", "member"),
+			),
+		) // TODO: create ChainHandler & ChainFunc
 
 	// add subrouters to main router
 	muxMain.Handle("/auth/", http.StripPrefix("/auth", muxAuth))
@@ -57,5 +64,4 @@ func main() {
 	}
 	fmt.Printf("Server listening on\u001B[1;32m http://%s \u001B[0m\n", addr)
 	log.Fatal(http.ListenAndServe(addr, muxMainChained))
-
 }

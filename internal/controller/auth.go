@@ -10,7 +10,7 @@ import (
 	"github.com/aaronlyy/go-api-example/internal/util"
 )
 
-type Auth struct {}
+type Auth struct{}
 
 // first auth with username and password
 type AuthRequestBody struct {
@@ -39,13 +39,13 @@ func (c *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// verify password and username
-	if (rb.Username != "aaron" || auth.VerifyPassword(rb.Password, hash) != nil) {
+	if rb.Username != "aaron" || auth.VerifyPassword(rb.Password, hash) != nil {
 		response.NewResponse(500, "wrong username or password", nil).Send(w)
 		return
 	}
 
 	// create new jwt with userid and role
-	token, exp, err := auth.SignAccessToken("1", []string{"admin"}, 15 * time.Minute)
+	token, exp, err := auth.SignAccessToken("1", []string{"admin", "member", "guest"}, 15*time.Minute)
 
 	if err != nil {
 		response.NewResponse(500, "error signing token", nil).Send(w)
@@ -53,14 +53,14 @@ func (c *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set cookie with jwt
-	http.SetCookie(w, &http.Cookie {
-		Name: "access_token",
-		Value: token,
-		Path: "/",
-		Expires: exp,
-		MaxAge: int(time.Until(exp).Seconds()),
+	http.SetCookie(w, &http.Cookie{
+		Name:     "access_token",
+		Value:    token,
+		Path:     "/",
+		Expires:  exp,
+		MaxAge:   int(time.Until(exp).Seconds()),
 		HttpOnly: true,
-		Secure: false,
+		Secure:   false,
 		SameSite: http.SameSiteLaxMode,
 	})
 
@@ -68,9 +68,6 @@ func (c *Auth) Login(w http.ResponseWriter, r *http.Request) {
 	var res = response.NewResponse(200, "User was authenticated", nil)
 	res.Send(w)
 }
-
-
-
 
 // delete all cookies and delete refresh token from db
 func (c *Auth) Logout(w http.ResponseWriter, r *http.Request) {
