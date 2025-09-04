@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 func TestHashAndVerify(t *testing.T) {

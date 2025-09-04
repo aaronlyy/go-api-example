@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 
 	"github.com/aaronlyy/go-api-example/internal/controller"
@@ -14,10 +17,33 @@ import (
 
 func main() {
 
+	ctx := context.Background()
+
 	// load env vars
 	_ = godotenv.Load()
 	var PORT string = util.GetEnv("PORT")
 	var ENV string = util.GetEnv("ENV")
+	var DBURL string = util.GetEnv("DBURL")
+
+	// connect to database
+	cfg, err := pgxpool.ParseConfig(DBURL)
+	if err != nil {
+		log.Fatalf("pgxpool config creation failed: %s\n", err.Error())
+	}
+	cfg.MaxConns = 10
+	cfg.MinConns = 1
+	cfg.MaxConnLifetime = time.Hour
+	cfg.MaxConnIdleTime = 30 * time.Hour
+
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		log.Fatalf("connection to database failed: %s\n", err.Error())
+	}
+	defer pool.Close()
+
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatalf("ping to database failed: %s\n", err.Error())
+	}
 
 	// create all needed subrouters
 	muxMain := http.NewServeMux() // create main router
@@ -25,40 +51,48 @@ func main() {
 	muxUser := http.NewServeMux() // user creation and deletion
 
 	// create controller structs
-	var auth = controller.Auth{}
-	var user = controller.User{}
-	var health = controller.Health{}
+	var authController = controller.NewAuthController(pool)
+	var usersController = controller.NewUserController(pool)
+	var healthController = controller.NewHealthController()
 
 	// main router handlers, no authentication required
-	muxMain.HandleFunc("GET /health", health.Health)
+	muxMain.HandleFunc("GET /health", healthController.Health)
 
 	// auth handlers, no authentication required
-	muxAuth.HandleFunc("POST /login", auth.Login)
-	muxAuth.HandleFunc("POST /logout", auth.Logout)
+	muxAuth.HandleFunc("POST /login", authController.Login)
+	muxAuth.HandleFunc("POST /logout", authController.Logout)
 
 	// user handlers
-	muxUser.HandleFunc("POST /register", user.Register)
+	muxUser.HandleFunc("POST /register", usersController.Register)
+	muxUser.Handle(
+		"GET /",
+		middleware.Chain(
+			http.HandlerFunc(usersController.GetAll),
+			middleware.Authenticate,
+			middleware.Authorize("admin"),
+		),
+	)
 	muxUser.Handle(
 		"PUT /deactivate/{uid}",
 		middleware.Chain(
-			http.HandlerFunc(user.Deactivate),
+			http.HandlerFunc(usersController.Deactivate),
 			middleware.Authenticate,
 			middleware.Authorize("admin", "member"),
-			),
-		) // TODO: create ChainHandler & ChainFunc
+		),
+	) // TODO: create ChainHandler & ChainFunc
 
 	// add subrouters to main router
 	muxMain.Handle("/auth/", http.StripPrefix("/auth", muxAuth))
-	muxMain.Handle("/user/", http.StripPrefix("/user", muxUser))
+	muxMain.Handle("/users/", http.StripPrefix("/users", muxUser))
 
 	// chain main router
-	muxMainChained := middleware.Chain(muxMain,middleware.Recover, middleware.Log, )
+	muxMainChained := middleware.Chain(muxMain, middleware.Recover, middleware.Log)
 
 	// start server
 	var addr string
 
-	if (ENV == "DEV") {
-		addr =  fmt.Sprintf("localhost:%s", PORT)
+	if ENV == "DEV" {
+		addr = fmt.Sprintf("localhost:%s", PORT)
 	} else {
 		addr = fmt.Sprintf(":%s", PORT)
 	}

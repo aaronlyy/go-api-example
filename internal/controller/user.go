@@ -4,25 +4,27 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/aaronlyy/go-api-example/internal/dto"
+	"github.com/aaronlyy/go-api-example/internal/repository"
 	"github.com/aaronlyy/go-api-example/internal/response"
 	"github.com/aaronlyy/go-api-example/internal/util"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// structs to parse body in
-type CreateUserRequestBody struct {
-	Username string `json:"username"`
-	Email string `json:"email"`
-	Password string `json:"password"`
+// create a new controller struct
+type UserController struct {
+	DB *pgxpool.Pool
 }
 
-// create a new controller struct
-type User struct {}
+func NewUserController(db *pgxpool.Pool) UserController {
+	return UserController{DB: db}
+}
 
 // attach method to controller, needs ResponseWriter and Request
-func (c *User) Register(w http.ResponseWriter, r *http.Request) {
+func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 
 	// create new struct for parsing request body
-	var rb CreateUserRequestBody
+	var rb dto.CreateUserRequest
 
 	// parse request body to struct
 	if err := util.ParseBody(r.Body, &rb); err != nil {
@@ -35,8 +37,23 @@ func (c *User) Register(w http.ResponseWriter, r *http.Request) {
 	response.NewResponse(201, "New user created", nil).Send(w)
 }
 
+func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
+	userRepo := repository.NewUsersRepository(c.DB)
+	users, err := userRepo.ListAll(r.Context())
+
+	if err != nil {
+		response.NewResponse(400, "error getting users", nil).Send(w)
+		return
+	}
+
+	fmt.Printf("users: %v", users)
+
+	response.NewResponse(200, "got all users", nil).Send(w)
+
+}
+
 // attach method to controller, needs ResponseWriter and Request
-func (c *User) Deactivate(w http.ResponseWriter, r *http.Request) {
+func (c *UserController) Deactivate(w http.ResponseWriter, r *http.Request) {
 	// prepare response object
 	response.NewResponse(200, "User deactivated", nil).Send(w)
 }

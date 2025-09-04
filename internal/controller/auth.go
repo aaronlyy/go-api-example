@@ -1,34 +1,38 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/aaronlyy/go-api-example/internal/auth"
 	"github.com/aaronlyy/go-api-example/internal/response"
 	"github.com/aaronlyy/go-api-example/internal/util"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type Auth struct{}
+type AuthController struct {
+	DB *pgxpool.Pool
+}
+
+func NewAuthController(db *pgxpool.Pool) AuthController {
+	return AuthController{DB: db}
+}
 
 // first auth with username and password
-type AuthRequestBody struct {
+type LoginRequestBody struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
 // attach method to controller, needs ResponseWriter and Request
-func (c *Auth) Login(w http.ResponseWriter, r *http.Request) {
+func (c *AuthController) Login(w http.ResponseWriter, r *http.Request) {
 	// get username and password from request
-	var rb AuthRequestBody
+	var rb LoginRequestBody
 
 	if err := util.ParseBody(r.Body, &rb); err != nil {
 		response.NewResponse(500, "error parsing body or missing data", nil).Send(w)
 		return
 	}
-
-	fmt.Printf("User '%s' tries to log in with password '%s'\n", rb.Username, rb.Password)
 
 	// load hash from db
 	hash, err := auth.HashPassword("a1sdf234", 10)
@@ -70,6 +74,6 @@ func (c *Auth) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // delete all cookies and delete refresh token from db
-func (c *Auth) Logout(w http.ResponseWriter, r *http.Request) {
+func (c *AuthController) Logout(w http.ResponseWriter, r *http.Request) {
 
 }
