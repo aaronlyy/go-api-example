@@ -55,15 +55,20 @@ func main() {
 	var usersController = controller.NewUserController(pool)
 	var healthController = controller.NewHealthController()
 
-	// main router handlers, no authentication required
+	// --- main router handlers, no authentication required ---
 	muxMain.HandleFunc("GET /health", healthController.Health)
 
-	// auth handlers, no authentication required
+	// --- auth handlers, no authentication required ---
+	// login user with username and pw, save jwt as cookie
 	muxAuth.HandleFunc("POST /login", authController.Login)
+	// remove cookie
 	muxAuth.HandleFunc("POST /logout", authController.Logout)
 
-	// user handlers
+	// --- user handlers ---
+	// register a new user
 	muxUser.HandleFunc("POST /register", usersController.Register)
+
+	// get all users
 	muxUser.Handle(
 		"GET /",
 		middleware.Chain(
@@ -72,6 +77,17 @@ func main() {
 			middleware.Authorize("admin"),
 		),
 	)
+	// get one user
+	muxUser.Handle(
+		"GET /{username}",
+		middleware.Chain(
+			http.HandlerFunc(usersController.GetOneByUsername),
+			middleware.Authenticate,
+			middleware.Authorize("admin"),
+		),
+	)
+
+	// deactivate a user
 	muxUser.Handle(
 		"PUT /deactivate/{uid}",
 		middleware.Chain(
@@ -97,5 +113,6 @@ func main() {
 		addr = fmt.Sprintf(":%s", PORT)
 	}
 	fmt.Printf("Server listening on\u001B[1;32m http://%s \u001B[0m\n", addr)
+
 	log.Fatal(http.ListenAndServe(addr, muxMainChained))
 }

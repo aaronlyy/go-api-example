@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-
 	"github.com/aaronlyy/go-api-example/internal/models"
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -19,7 +18,14 @@ func NewUsersRepository(db *pgxpool.Pool) UsersRepository {
 func (r *UsersRepository) ListAll(ctx context.Context) ([]models.User, error) {
 	var users []models.User
 	err := pgxscan.Select(ctx, r.DB, &users,
-		`SELECT uuid, username, active, created_at FROM users`,
+		`SELECT uuid, username, email, active, created_at FROM users`,
 	)
 	return users, err
+}
+
+func (r *UsersRepository) GetOneByUsername(ctx context.Context, username string) (models.User, error) {
+    var user models.User
+    const q = `SELECT uuid, username, email, active, created_at FROM users WHERE username = $1`
+    err := pgxscan.Get(ctx, r.DB, &user, q, username)
+    return user, err
 }

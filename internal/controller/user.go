@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/aaronlyy/go-api-example/internal/dto"
+	"github.com/aaronlyy/go-api-example/internal/mapper"
 	"github.com/aaronlyy/go-api-example/internal/repository"
 	"github.com/aaronlyy/go-api-example/internal/response"
 	"github.com/aaronlyy/go-api-example/internal/util"
@@ -50,6 +51,22 @@ func (c *UserController) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	response.NewResponse(200, "got all users", nil).Send(w)
 
+}
+
+func (c *UserController) GetOneByUsername(w http.ResponseWriter, r *http.Request) {
+	username := r.PathValue("username")
+	userRepo := repository.NewUsersRepository(c.DB)
+	user, err := userRepo.GetOneByUsername(r.Context(), username)
+
+	if err != nil {
+		response.NewResponse(400, "could not get user", nil).Send(w)
+		return
+	}
+
+	// model to dto
+	userDTO := mapper.UserToDTO(user)
+
+	response.NewResponse(200, "got user", userDTO).Send(w)
 }
 
 // attach method to controller, needs ResponseWriter and Request
